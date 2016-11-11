@@ -14,57 +14,80 @@ namespace DialPong
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
-        public static RadialController dial;
-        RadialControllerConfiguration dialConfig;
 
         List<RadialControllerMenuItem> menuItems;
 
         Paddle paddle;
+        Ball ball;
+
+        bool inFocus;
 
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
+            inFocus = false;
             menuItems = new List<RadialControllerMenuItem>();
-            dial = RadialController.CreateForCurrentView();
-            dialConfig = RadialControllerConfiguration.GetForCurrentView();
-            dial.RotationResolutionInDegrees = 1;
-            dial.UseAutomaticHapticFeedback = true;
+            World.dial.RotationResolutionInDegrees = 1;
+            World.dial.UseAutomaticHapticFeedback = true;
             RadialControllerMenuItem paddleMenuItem = RadialControllerMenuItem.CreateFromKnownIcon("Paddle", RadialControllerMenuKnownIcon.Ruler);
             RadialControllerMenuItem sensitivityMenuItem = RadialControllerMenuItem.CreateFromKnownIcon("Sensitivity", RadialControllerMenuKnownIcon.Scroll);
+            RadialControllerMenuItem exitMenuItem = RadialControllerMenuItem.CreateFromKnownIcon("Exit", RadialControllerMenuKnownIcon.NextPreviousTrack);
+            exitMenuItem.Invoked += ExitMenuItem_Invoked;
             menuItems.Add(paddleMenuItem);
             menuItems.Add(sensitivityMenuItem);
+            menuItems.Add(exitMenuItem);
             for (int i = 0; i < menuItems.Count; i++)
             {
                 RadialControllerMenuItem item = menuItems[i];
                 int index = i;
-                dial.Menu.Items.Add(item);
+                World.dial.Menu.Items.Add(item);
             }
-            dialConfig.SetDefaultMenuItems(new List<RadialControllerSystemMenuItemKind>());
-            dial.RotationChanged += Dial_RotationChanged;
-            dial.ButtonClicked += Dial_ButtonClicked;
-            dial.ControlAcquired += Dial_ControlAcquired;
-            dial.ControlLost += Dial_ControlLost;
+            World.dialConfig.SetDefaultMenuItems(new List<RadialControllerSystemMenuItemKind>());
+            World.dial.RotationChanged += Dial_RotationChanged;
+            World.dial.ButtonClicked += Dial_ButtonClicked;
+            World.dial.ControlAcquired += Dial_ControlAcquired;
+            World.dial.ControlLost += Dial_ControlLost;
+        }
+
+        private void ExitMenuItem_Invoked(RadialControllerMenuItem sender, object args)
+        {
+            this.Exit();
         }
 
         private void Dial_ControlLost(RadialController sender, object args)
         {
-            //screenColor = Color.CornflowerBlue;
+            inFocus = false;
+            World.dial.RotationResolutionInDegrees = 1;
         }
 
         private void Dial_ControlAcquired(RadialController sender, RadialControllerControlAcquiredEventArgs args)
         {
-            //screenColor = Color.Black;
+            inFocus = true;
         }
 
         private void Dial_ButtonClicked(RadialController sender, RadialControllerButtonClickedEventArgs args)
         {
-            Debug.WriteLine("button clicked");
+            var selected = World.dial.Menu.GetSelectedMenuItem();
+            if (selected.DisplayText == "Exit")
+            {
+                this.Exit();
+            }
+            else
+            {
+                if (ball != null)
+                {
+                    if (ball.sprite.velocity == Vector2.Zero)
+                    {
+                        ball.Launch();
+                    }
+                }
+            }
         }
 
         private void Dial_RotationChanged(RadialController sender, RadialControllerRotationChangedEventArgs args)
         {
-            var selected = dial.Menu.GetSelectedMenuItem();
+            var selected = World.dial.Menu.GetSelectedMenuItem();
             if (selected.DisplayText == "Paddle")
             {
                 if (paddle != null)
@@ -104,6 +127,7 @@ namespace DialPong
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
             paddle = new Paddle(graphics);
+            ball = new Ball(graphics);
         }
 
         /// <summary>
@@ -126,7 +150,13 @@ namespace DialPong
             {
                 this.Exit();
             }
-            paddle.Update();
+
+            if (inFocus)
+            {
+                ball.Update();
+                paddle.Update();
+                ball.HandlePaddleBounce(paddle);
+            }
 
             base.Update(gameTime);
         }
@@ -141,6 +171,7 @@ namespace DialPong
 
             spriteBatch.Begin();
             paddle.Draw(spriteBatch);
+            ball.Draw(spriteBatch);
             spriteBatch.End();
 
             base.Draw(gameTime);

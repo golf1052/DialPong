@@ -18,7 +18,7 @@ namespace DialPong
         {
             this.graphics = graphics;
             sprite = new Sprite(graphics);
-            sprite.position.X = 50;
+            sprite.position.X = 150;
             sprite.drawRect.Width = 50;
             sprite.drawRect.Height = 200;
         }
@@ -30,8 +30,16 @@ namespace DialPong
 
         public void ChangeSensitivity(float amount)
         {
-            scale += amount;
+            if (amount < 0)
+            {
+                scale--;
+            }
+            else if (amount > 0)
+            {
+                scale++;
+            }
             scale = MathHelper.Clamp(scale, 1, 100);
+            World.dial.RotationResolutionInDegrees = (int)scale;
             System.Diagnostics.Debug.WriteLine(scale);
         }
 
@@ -41,16 +49,16 @@ namespace DialPong
             if (sprite.position.Y <= 0)
             {
                 sprite.position.Y = 0;
-                Game1.dial.UseAutomaticHapticFeedback = false;
+                World.dial.UseAutomaticHapticFeedback = false;
             }
             else if (sprite.position.Y >= graphics.GraphicsDevice.Viewport.Height - sprite.drawRect.Height)
             {
                 sprite.position.Y = graphics.GraphicsDevice.Viewport.Height - sprite.drawRect.Height;
-                Game1.dial.UseAutomaticHapticFeedback = false;
+                World.dial.UseAutomaticHapticFeedback = false;
             }
             else
             {
-                Game1.dial.UseAutomaticHapticFeedback = true;
+                World.dial.UseAutomaticHapticFeedback = true;
             }
         }
 
